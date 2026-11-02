@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>วงจรหาร 32 บิต: สร้างอย่างไร</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f7f8fa; --fg:#1b2230; --muted:#667085; --card:#ffffff; --line:#e1e4ea;
+  --accent:#0f766e; --accent-soft:#dff3f0; --orange:#d9640f; --orange-soft:#fdeadb;
+  --hi:#2563eb; --hi-soft:#dbe7ff; --lo:#16a34a; --lo-soft:#dcf5e3; --mc:#9333ea; --mc-soft:#f0e3fd;
+  --off:#e4e7ec; --yellow:#fff3bf;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#10141b; --fg:#e8ebf1; --muted:#9aa3b5; --card:#181e29; --line:#2a3242;
+    --accent:#4fd1c0; --accent-soft:#12302d; --orange:#ffa15c; --orange-soft:#3a2615;
+    --hi:#7aa7ff; --hi-soft:#1a2a4d; --lo:#5fdc86; --lo-soft:#173222; --mc:#c79bff; --mc-soft:#2b1c42;
+    --off:#2d3544; --yellow:#4a4313;
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:60px}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:"Noto Sans Thai",system-ui,sans-serif;line-height:1.7;font-size:17px}
+.wrap{max-width:760px;margin:0 auto;padding:0 14px 70px}
+.hero{padding:26px 0 6px}
+.hero h1{font-size:1.85rem;line-height:1.25;margin:0}
+.hero p{margin:6px 0 0;color:var(--muted)}
+nav{position:sticky;top:0;z-index:30;background:var(--bg);border-bottom:1px solid var(--line);margin:10px -14px 0;padding:8px 14px;display:flex;gap:8px;overflow-x:auto;white-space:nowrap}
+nav a{flex:none;text-decoration:none;color:var(--fg);border:1px solid var(--line);background:var(--card);border-radius:999px;padding:4px 13px;font-size:.88rem}
+h2{font-size:1.35rem;margin:42px 0 4px;line-height:1.3}
+h2 .n{display:inline-flex;width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--bg);align-items:center;justify-content:center;font-size:.9rem;margin-right:8px;vertical-align:middle}
+.sub{color:var(--muted);margin:0 0 10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin:12px 0}
+button{font:inherit;font-size:.95rem;padding:8px 14px;border-radius:10px;border:1px solid var(--accent);background:var(--card);color:var(--accent);cursor:pointer;touch-action:manipulation}
+button.p{background:var(--accent);color:var(--bg)}
+button:active{opacity:.7}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.chip{display:inline-block;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:3px 12px;font-size:.85rem;color:var(--fg);cursor:pointer}
+.mono,.hex{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.bits{display:inline-flex;gap:5px;vertical-align:middle}
+.bits button{width:42px;height:42px;padding:0;font-family:ui-monospace,monospace;font-size:1.15rem;border-color:var(--line);color:var(--muted)}
+.bits button.on{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.lab{font-size:.85rem;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:6px 0}
+.big{font-size:1.15rem;font-weight:700}
+table.pp{border-collapse:collapse;margin:10px auto;width:100%;max-width:420px}
+table.pp td{font-family:ui-monospace,monospace;text-align:center;padding:5px 0;font-size:1.15rem;width:9%}
+table.pp td.l{width:auto;text-align:left;font-family:inherit;font-size:.78rem;color:var(--muted);padding-right:6px}
+table.pp td.v1{color:var(--accent);font-weight:700}
+table.pp td.v0{color:var(--muted);opacity:.45}
+table.pp tr.sum td{border-top:2px solid var(--fg)}
+table.pp tr.sum td.v1,table.pp tr.sum td.v0{opacity:1;color:var(--fg);font-weight:700}
+table.pp button.rb{padding:2px 8px;font-size:.78rem}
+svg{max-width:100%;height:auto;display:block;margin:8px auto}
+svg text{fill:var(--fg);font-family:"Noto Sans Thai",system-ui,sans-serif}
+svg .sm{font-size:11px}svg .md{font-size:13px}
+svg .bx{fill:var(--card);stroke:var(--fg);stroke-width:1.5}
+svg .ln{stroke:var(--off);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+svg .ln.on{stroke:var(--orange)}
+svg .gate{fill:var(--card);stroke:var(--fg);stroke-width:1.5}
+svg .gate.on{fill:var(--orange-soft);stroke:var(--orange)}
+svg .blk{cursor:pointer}
+svg .blk rect{stroke-width:2}
+svg .blk.sel rect{stroke-width:4}
+.info{min-height:3.2em;background:var(--accent-soft);border-radius:12px;padding:8px 12px;margin-top:6px;font-size:.95rem}
+/* bit cells */
+.cells{display:flex;gap:4px;margin:2px 0}
+.nib{display:flex;gap:1px;flex:1}
+.c{flex:1;aspect-ratio:1;border-radius:2px;background:var(--off)}
+.cells.hi .c.on{background:var(--hi)}
+.cells.lo .c.on{background:var(--lo)}
+.cells.mc .c.on{background:var(--mc)}
+.c.b0{outline:2px solid var(--orange);outline-offset:1px}
+.cells.hi .c.chg{box-shadow:0 0 0 2px var(--yellow)}
+.regl{display:flex;justify-content:space-between;align-items:baseline;font-size:.82rem;color:var(--muted);margin-top:8px}
+.regl b{color:var(--fg)}
+.hexl{font-family:ui-monospace,monospace;font-size:.82rem;color:var(--muted);text-align:right}
+.op{margin:10px 0 2px;padding:8px 12px;border-radius:12px;background:var(--yellow);font-size:.95rem;min-height:3.1em}
+input[type=text]{font:inherit;font-size:16px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);width:100%;font-family:ui-monospace,monospace}
+select{font:inherit;font-size:16px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg)}
+input[type=range]{width:100%;accent-color:var(--accent);height:34px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.out{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.out>div{border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:var(--bg)}
+.out .k{font-size:.78rem;color:var(--muted)}
+.out .v{font-family:ui-monospace,monospace;font-weight:700;font-size:1.05rem;word-break:break-all}
+.out .wide{grid-column:1/3}
+.ok{color:var(--lo);font-weight:700}
+.bad{color:#d33;font-weight:700}
+/* ripple strip */
+.strip{display:flex;gap:4px;overflow-x:auto;padding:6px 2px 10px;-webkit-overflow-scrolling:touch}
+.tile{flex:none;width:38px;border:1px solid var(--line);border-radius:8px;text-align:center;font-family:ui-monospace,monospace;font-size:.82rem;padding:3px 0;background:var(--bg);opacity:.35;transition:opacity .15s}
+.tile.done{opacity:1}
+.tile.cin{background:var(--orange-soft);border-color:var(--orange)}
+.tile .i{font-size:.66rem;color:var(--muted)}
+.tile .s{font-weight:700;font-size:1rem}
+.tile .co{font-size:.66rem;color:var(--orange)}
+.ft{display:flex;flex-wrap:wrap;gap:8px}
+.ft .t{flex:1 1 90px;border:1px solid var(--line);border-radius:12px;padding:8px;text-align:center;font-family:ui-monospace,monospace;background:var(--bg)}
+.ft .t .i{font-family:"Noto Sans Thai",sans-serif;font-size:.75rem;color:var(--muted)}
+.ft .t.cin{background:var(--orange-soft);border-color:var(--orange)}
+/* compare */
+.tl{display:flex;flex-wrap:wrap;gap:3px;margin:6px 0}
+.tl span{display:inline-block;border-radius:4px;padding:1px 6px;font-size:.7rem;color:#fff}
+.tl .a{background:#2563eb}.tl .m{background:#9333ea}.tl .r{background:#16a34a}.tl .z{background:#0f766e}
+.bar{height:22px;border-radius:6px;background:var(--accent);color:var(--bg);font-size:.8rem;display:flex;align-items:center;padding-left:8px;white-space:nowrap}
+.bar.o{background:var(--orange)}
+table.cmp{border-collapse:collapse;width:100%;font-size:.9rem}
+table.cmp th,table.cmp td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+table.cmp th{color:var(--muted);font-weight:600}
+.pt{margin:4px 0;padding-left:1.1em}
+footer{margin-top:48px;color:var(--muted);font-size:.82rem}
+
+.sv{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:6px -4px}
+.sv svg{max-width:none;width:100%}
+svg .bub{fill:var(--card);stroke:var(--off);stroke-width:2}
+svg .bub.on{fill:var(--orange-soft);stroke:var(--orange)}
+svg .vt{font-size:11px;font-family:ui-monospace,monospace;text-anchor:middle;font-weight:700}
+svg .tx{font-size:9.5px;fill:var(--muted)}
+svg .fab{fill:var(--card);stroke:var(--fg);stroke-width:1.5}
+svg .fab.on{fill:var(--accent-soft);stroke:var(--accent)}
+svg .fab.pend{opacity:.45}
+svg .fab.selb{stroke:var(--orange);stroke-width:3.5}
+svg rect.fab[data-i]{cursor:pointer}
+svg .gate{fill:var(--card);stroke:var(--fg);stroke-width:1.5}
+svg .gate.on{fill:var(--orange-soft);stroke:var(--orange)}
+svg .gate-l{fill:none;stroke:var(--fg);stroke-width:1.5}
+svg .ln.dash{stroke-dasharray:5 4;opacity:.55}
+svg .ln.dim,svg g.dim{opacity:.35}
+.rs{display:flex;gap:4px;margin:8px 0;flex-wrap:wrap}
+.rs .b{width:34px;text-align:center;border:1px solid var(--line);border-radius:8px;font-family:ui-monospace,monospace;font-weight:700;background:var(--bg)}
+.rs .b.on{background:var(--orange-soft);border-color:var(--orange);color:var(--orange)}
+.rs .b small{display:block;font-size:.62rem;color:var(--muted);font-weight:400}
+.steps{padding-left:1.2em;margin:8px 0;font-size:.92rem}
+.steps li{margin:4px 0}
+.steps li.pend{opacity:.35}
+.legend{margin:4px 0 8px;line-height:1.6}
+svg.chn.big .tx{font-size:12px}
+svg.chn.big .vt{font-size:12.5px}
+a.lk{color:var(--accent);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="hero">
+  <h1>วงจรหาร 32 บิต<br>สร้างอย่างไร</h1>
+  <p>กดได้ ลองได้ · วิชา 198322 สถาปัตยกรรมคอมพิวเตอร์ · ตามสไลด์ "Integer Division: Approach 1 / 2" · <a class="lk" href="../">← ดูวงจรคูณ</a></p>
+</header>
+<nav>
+  <a href="#paper">1 หารยาว</a><a href="#parts">2 ตัวลบ</a><a href="#machine">3 เครื่อง</a><a href="#try">4 ลองหาร</a><a href="#compare">5 เทียบ</a><a href="#sum">สรุป</a>
+</nav>
+
+<!-- 1 -->
+<h2 id="paper"><span class="n">1</span>เริ่มจากหารยาวบนกระดาษ</h2>
+<p class="sub">ทีละหลัก: ดึงบิตของตัวตั้งลงมา ถ้าตัวหารลบได้ → ใส่ <b>1</b> แล้วลบ ถ้าลบไม่ได้ → ใส่ <b>0</b> กดบิตเพื่อเปลี่ยนเลข</p>
+<div class="card" id="w-paper">
+  <div class="row"><span class="lab">ตัวตั้ง (Dividend)</span><span class="bits" id="pa-a"></span><span class="big" id="pa-av"></span></div>
+  <div class="row"><span class="lab">ตัวหาร (Divisor)</span><span class="bits" id="pa-b"></span><span class="big" id="pa-bv"></span></div>
+  <div id="pa-ex" style="margin:4px 0"><span class="lab">ลองตัวอย่าง:</span> <span class="chip" data-pa="7,2">7 ÷ 2</span> <span class="chip" data-pa="13,3">13 ÷ 3</span> <span class="chip" data-pa="15,4">15 ÷ 4</span> <span class="chip" data-pa="9,9">9 ÷ 9</span></div>
+  <div class="tw"><table class="dt" id="pa-t"></table></div>
+  <div class="lab legend"><b>วิธีอ่านตาราง</b> · แต่ละแถว = ดึงบิตของตัวตั้งลงมา 1 บิต (จากซ้ายไปขวา) · <b>ส่วนที่ได้</b> = เศษรอบก่อน ×2 + บิตที่ดึงลงมา · <b>เทียบ</b> = ส่วนที่ได้ กับตัวหาร · ถ้า ≥ ตัวหาร → <b>q = 1</b> แล้วลบตัวหารออก ถ้าน้อยกว่า → <b>q = 0</b> ไม่ลบ · <b>เหลือ</b> = ส่วนที่เหลือส่งต่อไปแถวถัดไป · อ่านผลหารจากคอลัมน์ q ตั้งแต่บนลงล่าง</div>
+  <div class="info" id="pa-i"></div>
+</div>
+<p class="sub">กฎที่ต้องจำ: <b>ตัวตั้ง = ผลหาร × ตัวหาร + เศษ</b> และเศษต้องน้อยกว่าตัวหารเสมอ</p>
+
+<!-- 2 -->
+<h2 id="parts"><span class="n">2</span>ชิ้นส่วน: ตัวลบ</h2>
+<p class="sub">เครื่องหารต้อง "ลบ" แล้วดูว่าผลติดลบไหม ตัวลบสร้างจาก <b>full adder</b> ตัวเดียวกับเครื่องคูณ วาดเป็นเกตจริง กดสลับ A, B, Cin ดูสายที่ติดไฟ (เส้นส้ม = 1)</p>
+<div class="card" id="w-fa">
+  <div class="row"><span class="lab">A</span><span class="bits" id="fa-a"></span><span class="lab">B</span><span class="bits" id="fa-b"></span><span class="lab">Cin</span><span class="bits" id="fa-c"></span></div>
+  <div class="sv" id="fa-sv"></div>
+  <div class="lab legend"><b>วิธีอ่านภาพ</b> · A, B, Cin เข้าจากซ้าย ผ่านเกต XOR / AND / OR ไปออกที่ <b>Sum</b> (ผลบวก) กับ <b>Cout</b> (ตัวทดออก) · s1, c1, c2 = สัญญาณกลางทาง · เส้นส้ม = 1, เส้นเทา = 0</div>
+  <div class="info" id="fa-i"></div>
+</div>
+<p class="sub">ลบด้วยตัวบวกได้: <b>A − B = A + (กลับบิตของ B) + 1</b> จึงเอา full adder 5 ตัวมาต่อกัน ป้อน <b>~b</b> (บิตของ B ที่กลับแล้ว) และตั้ง <b>Cin = 1</b> ที่ตัวขวาสุด แล้วดู<b>บิตซ้ายสุด (บิต 4)</b>: เป็น 1 = ผลติดลบ</p>
+<div class="card" id="w-sub">
+  <div class="row"><span class="lab">A (ส่วนที่ได้)</span><span class="bits" id="sb-a"></span><span class="big" id="sb-av"></span></div>
+  <div class="row"><span class="lab">B (ตัวหาร)</span><span class="bits" id="sb-b"></span><span class="big" id="sb-bv"></span></div>
+  <div class="btns"><button class="p" id="sb-go">▶ ปล่อย carry</button><button id="sb-all">แสดงผลทันที</button></div>
+  <div class="sv" id="sb-sv"></div>
+  <div class="lab legend"><b>วิธีอ่านภาพ</b> · วงกลมบน 2 อัน = <b>a</b> (A) กับ <b>~b</b> (B ที่กลับบิตแล้ว) · วงกลมล่าง = <b>ผลลบ</b> ของหลักนั้น · วงกลมเล็กบนเส้นระหว่างกล่อง = <b>ตัวทด</b> (ส่งจากขวาไปซ้าย) · ส้ม = 1, เทา = 0 · บิต 4 คือ <b>บิตเครื่องหมาย</b></div>
+  <div class="lab" style="margin-top:6px"><b>คิดทีละหลัก (เริ่มจากบิต 0 ทางขวา)</b></div>
+  <ol class="steps" id="sb-st" style="list-style:none;padding-left:0"></ol>
+  <div class="info" id="sb-i"></div>
+</div>
+<p class="sub">ทำไมต้อง 5 หลัก: A กับ B มีแค่ 4 บิต แต่ผลลบอาจติดลบ ต้องมีบิตที่ 5 ไว้บอกเครื่องหมาย (เครื่อง 32 บิตจึงต้องลบแบบ <b>33 บิต</b>)</p>
+
+<!-- 3 -->
+<h2 id="machine"><span class="n">3</span>เครื่องหาร 32 บิต</h2>
+<p class="sub">แบบสไลด์ (Approach 2) หน้าตาเหมือนเครื่องคูณมาก: Dividend อยู่ครึ่งขวาของ Remainder แล้วค่อยๆ กลายเป็นผลหาร กดแต่ละกล่องดูหน้าที่</p>
+<div class="card">
+  <svg viewBox="0 0 380 290" id="mc-svg" role="img" aria-label="แผนภาพตัวหาร 32 บิต">
+    <g class="blk" data-k="div"><rect class="bx" x="20" y="12" width="250" height="36" rx="8" style="fill:var(--mc-soft);stroke:var(--mc)"/><text x="145" y="35" text-anchor="middle" class="md">Divisor 32 บิต</text></g>
+    <g class="blk" data-k="alu"><rect class="bx" x="20" y="82" width="250" height="40" rx="8" style="fill:var(--accent-soft);stroke:var(--accent)"/><text x="145" y="107" text-anchor="middle" class="md">ALU 32 บิต (ลบ)</text></g>
+    <g class="blk" data-k="hi"><rect class="bx" x="20" y="170" width="125" height="46" rx="8" style="fill:var(--hi-soft);stroke:var(--hi)"/><text x="82" y="190" text-anchor="middle" class="md">HI</text><text x="82" y="206" text-anchor="middle" class="sm">Remainder (เศษ)</text></g>
+    <g class="blk" data-k="lo"><rect class="bx" x="145" y="170" width="125" height="46" rx="8" style="fill:var(--lo-soft);stroke:var(--lo)"/><text x="207" y="190" text-anchor="middle" class="md">LO</text><text x="207" y="206" text-anchor="middle" class="sm">Dividend → Quotient</text></g>
+    <g class="blk" data-k="ctl"><rect class="bx" x="296" y="82" width="76" height="62" rx="8"/><text x="334" y="108" text-anchor="middle" class="md">Control</text><text x="334" y="126" text-anchor="middle" class="sm">ดูเครื่องหมาย</text></g>
+    <path class="ln" style="stroke:var(--fg);stroke-width:1.6" d="M145 48V82M55 170V122M110 122V170"/>
+    <path class="ln" style="stroke:var(--orange)" d="M270 102H296"/>
+    <text x="118" y="150" class="sm">ผลลบ ↓</text><text x="2" y="150" class="sm">↑ ค่าเดิม</text>
+    <g class="blk" data-k="shift"><path d="M258 246H26M36 239L26 246L36 253" fill="none" style="stroke:var(--orange);stroke-width:3"/><text x="64" y="272" class="md" style="fill:var(--orange)">เลื่อนซ้าย 1 บิต ทุกรอบ</text></g>
+  </svg>
+  <div class="info" id="mc-i">👆 กดกล่องใดก็ได้</div>
+</div>
+
+<p class="sub">ซูมเข้าไปข้างในเครื่องจริง (ใช้ <b>4 บิต</b> ให้เห็นทุกสาย · 32 บิตคือชุดเดียวกันซ้ำ): <b>ตัวลบ 5 ตัว → MUX → flip-flop</b> กด clock ดูข้อมูลไหลทีละรอบ</p>
+<div class="card" id="w-dd">
+  <div class="row"><span class="lab">Dividend</span><span class="bits" id="dd-a"></span><span class="big" id="dd-av"></span></div>
+  <div class="row"><span class="lab">Divisor</span><span class="bits" id="dd-d"></span><span class="big" id="dd-dv"></span></div>
+  <div class="sv" id="dd-sv"></div>
+  <div class="btns"><button class="p" id="dd-clk">clock ▶</button><button id="dd-rst">เริ่มใหม่</button></div>
+  <div class="info" id="dd-i"></div>
+  <div class="lab legend"><b>วิธีอ่านภาพ</b> · แถวล่าง = flip-flop 8 ตัว (HI 4 ตัว | LO 4 ตัว) · แถวบน = ตัวลบ 5 ตัว (บิต 4 คือ sign) รับ a จาก flip-flop ที่อยู่ใต้มัน · <b>ok</b> = ไม่ติดลบ → MUX เลือก "1" (ผลลบ) ไม่งั้นเลือก "0" (ค่าเดิม) · <b>เลื่อนซ้าย</b> = flip-flop แต่ละตัวรับค่าจากตัวทางขวา (แค่ต่อสายเยื้อง) · เส้นประ = อินพุต MUX ที่ไม่ถูกเลือก · LO ตัวขวาสุดรับ <b>ok</b> เป็นบิตผลหาร</div>
+</div>
+
+<!-- 4 -->
+<h2 id="try"><span class="n">4</span>ลองหารเอง</h2>
+<p class="sub">ใส่เลขสองตัว (ฐาน 10 หรือ 0x… ฐาน 16) ได้ <b>HI = เศษ</b> และ <b>LO = ผลหาร</b> แบบ MIPS จากนั้นเลื่อนแถบดูเครื่องทำงานทีละรอบ</p>
+<div class="card" id="w-try">
+  <div class="grid2">
+    <div><div class="lab">Dividend ($s1)</div><input type="text" id="t-a" value="-7" autocomplete="off" inputmode="text"></div>
+    <div><div class="lab">Divisor ($s2)</div><input type="text" id="t-b" value="2" autocomplete="off" inputmode="text"></div>
+  </div>
+  <div class="row" style="margin-top:10px"><select id="t-m"><option value="s">div (มีเครื่องหมาย)</option><option value="u">divu (ไม่มีเครื่องหมาย)</option></select><button class="p" id="t-go">คำนวณ</button></div>
+  <div style="margin:4px 0 8px"><span class="chip" data-ex="7|2|s">7 ÷ 2</span> <span class="chip" data-ex="-7|2|s">−7 ÷ 2</span> <span class="chip" data-ex="0xffffffff|3|u">0xffffffff ÷ 3 (divu)</span> <span class="chip" data-ex="1000000|7|s">1,000,000 ÷ 7</span> <span class="chip" data-ex="5|0|s">5 ÷ 0</span></div>
+  <div class="out" id="t-out"></div>
+  <hr style="border:0;border-top:1px solid var(--line);margin:14px 0">
+  <div class="lab">ดูเครื่องทำงานทีละรอบ</div>
+  <div class="regl"><span><b>Divisor</b> (ค่าบวกที่ใช้จริง · ไม่เปลี่ยน)</span></div>
+  <div class="cells mc" id="s-mc"></div>
+  <div class="regl"><span><b>HI</b> เศษ (Remainder)</span><span class="hexl" id="s-hih"></span></div>
+  <div class="cells hi" id="s-hi"></div>
+  <div class="regl"><span><b>LO</b> Dividend → ผลหาร</span><span class="hexl" id="s-loh"></span></div>
+  <div class="cells lo" id="s-lo"></div>
+  <div class="lab" style="margin-top:10px">ตัวลบ 33 ตัวของรอบนี้ (ส่วนที่ได้ − Divisor) · เลื่อนซ้าย/ขวาดูทุกบิต · บิตซ้ายสุด = sign</div>
+  <div class="sv" id="s-sub"></div>
+  <div class="lab" id="s-subc"></div>
+  <div class="op" id="s-op"></div>
+  <input type="range" id="s-r" min="0" max="32" value="0">
+  <div class="btns"><button class="p" id="s-step">ถัดไป ▶</button><button id="s-play">เล่นอัตโนมัติ</button><button id="s-end">ข้ามไปจบ</button><button id="s-reset">เริ่มใหม่</button></div>
+  <div class="lab">ช่องสีทึบ = บิต 1 · กรอบส้ม = บิตผลหารที่เพิ่งใส่ (LO บิต 0) · ขอบเหลืองที่ HI = ค่าเพิ่งเปลี่ยน</div>
+</div>
+
+<!-- 5 -->
+<h2 id="compare"><span class="n">5</span>Approach 1 กับ 2 ต่างกันอย่างไร</h2>
+<p class="sub">เลือกแบบเพื่อดูไทม์ไลน์ 4 รอบแรก</p>
+<div class="card" id="w-cmp">
+  <div class="btns"><button data-v="1">Approach 1</button><button class="p" data-v="2">Approach 2 (สไลด์)</button></div>
+  <div class="tl" id="cm-tl"></div>
+  <div class="lab" id="cm-cap"></div>
+  <div style="margin-top:10px">
+    <div class="lab">จำนวนขั้นสำหรับ 32 บิต</div>
+    <div class="bar o" style="width:100%">แบบ 1: 33 รอบ × 3 = 99</div>
+    <div style="height:5px"></div>
+    <div class="bar" style="width:32.3%">แบบ 2: 32</div>
+  </div>
+  <table class="cmp" style="margin-top:12px">
+    <tr><th></th><th>Approach 1</th><th>Approach 2</th></tr>
+    <tr><td>ALU</td><td>64 บิต</td><td>32 บิต (+บิตเครื่องหมาย)</td></tr>
+    <tr><td>Divisor</td><td>64 บิต เลื่อนขวา</td><td>32 บิต คงที่</td></tr>
+    <tr><td>Quotient</td><td>register แยก</td><td>อยู่ใน LO</td></tr>
+    <tr><td>รอบละ</td><td>3 ขั้น (33 รอบ)</td><td>1 cycle (32 รอบ)</td></tr>
+  </table>
+</div>
+<div class="card">
+  <div class="lab">"Looks a lot like a multiplier! Same hardware can be used for both" (สไลด์)</div>
+  <table class="cmp">
+    <tr><th></th><th>คูณ</th><th>หาร</th></tr>
+    <tr><td>ALU</td><td>บวก</td><td>ลบ</td></tr>
+    <tr><td>เลื่อน</td><td>ขวา</td><td>ซ้าย</td></tr>
+    <tr><td>HI</td><td>ผลบวกสะสม</td><td>เศษ</td></tr>
+    <tr><td>LO</td><td>Multiplier → ผลคูณ</td><td>Dividend → ผลหาร</td></tr>
+    <tr><td>Control ดู</td><td>บิต 0 ของ LO</td><td>เครื่องหมายผลลบ</td></tr>
+    <tr><td>รอบ</td><td>32</td><td>32</td></tr>
+  </table>
+</div>
+
+<!-- 6 -->
+<h2 id="sum"><span class="n">6</span>สรุป</h2>
+<div class="card">
+  <ol class="pt">
+    <li>หาร = <b>เลื่อนซ้าย</b> แล้ว <b>ลบ</b> ตัวหาร ถ้าลบได้เก็บผลและใส่ 1 ถ้าไม่ได้ <b>ไม่เก็บผล</b> (restore) และใส่ 0 ทำซ้ำ 32 รอบ</li>
+    <li>ใช้ <b>ALU 32 บิต</b> (ต่อจาก full adder ที่กลับบิต B และ Cin = 1) และดูเครื่องหมายของผลลบ</li>
+    <li>ผลอยู่ใน HI | LO: <b>HI = เศษ, LO = ผลหาร</b> (คำสั่ง div / divu แล้ว mfhi / mflo)</li>
+    <li>เลขมีเครื่องหมาย: หารด้วยค่าสัมบูรณ์ ผลหารเป็นลบเมื่อเครื่องหมายต่างกัน <b>เศษมีเครื่องหมายเดียวกับตัวตั้ง</b></li>
+    <li><b>MIPS ไม่ตรวจหารด้วย 0</b> ซอฟต์แวร์ต้องตรวจเอง</li>
+  </ol>
+</div>
+<footer>อ้างอิง: สไลด์ w03c_mult (Integer Division Approach 1/2, MIPS Division) และเอกสารประกอบ COANotes2014 บทที่ 3.7 · ตัวหาร 32 บิตผ่านการทดสอบอัตโนมัติกว่า 29,000 กรณี (div และ divu รวมค่าขอบ) · datapath 4 บิตและตัวลบ 5 บิตทดสอบครบทุกคู่ ผลถูกต้องทั้งหมด · ตำราบางเล่มเลื่อน Remainder ซ้าย 1 ครั้งก่อนเริ่มและเลื่อนกลับตอนจบ หน้านี้เลื่อน "ก่อนลบ" ในทุกรอบ ผลเท่ากัน</footer>
+</div>
+
+<script>
+// ตัวหาร 32 บิต แบบ "Approach 2": Remainder 64 บิต = HI|LO, Divisor 32 บิต คงที่, ALU ลบ, 32 รอบ
+var M32 = (1n << 32n) - 1n, M64 = (1n << 64n) - 1n;
+function toS32(p) { p = p & M32; return p >= (1n << 31n) ? p - (1n << 32n) : p; }
+function hwDiv(aIn, bIn, signed) {
+  // aIn = Dividend, bIn = Divisor (BigInt ตามที่ตีความแล้ว); bIn ต้องไม่เป็น 0
+  var negQ = false, negR = false, a = aIn, d = bIn;
+  if (signed) { if (a < 0n) { a = -a; negR = true; negQ = !negQ; } if (d < 0n) { d = -d; negQ = !negQ; } }
+  var HI = 0n, LO = a, steps = [{k: 0, HI: HI, LO: LO}];
+  for (var k = 1; k <= 32; k++) {
+    var shifted = (HI << 1n) | ((LO >> 31n) & 1n);          // เลื่อนซ้ายทั้ง Remainder: HI รับบิตสูงสุดของ LO (กว้าง 33 บิต)
+    var loShift = (LO << 1n) & M32;
+    var t = shifted - d, ok = t >= 0n;                        // ลบ Divisor แล้วดูเครื่องหมาย
+    HI = ok ? t : shifted;                                    // ลบไม่ได้ → คงค่าเดิม (= restore)
+    LO = loShift | (ok ? 1n : 0n);                            // ใส่บิตผลหาร
+    steps.push({k: k, HI: HI, LO: LO, shifted: shifted, t: t, ok: ok});
+  }
+  var q = LO, r = HI;
+  var fix = negQ || negR;
+  var qOut = negQ ? ((1n << 32n) - q) & M32 : q, rOut = negR ? ((1n << 32n) - r) & M32 : r;
+  return {steps: steps, D: d, A: a, q: q, r: r, negQ: negQ, negR: negR, fix: fix, lo: qOut, hi: rOut};
+}
+if (typeof module !== 'undefined') module.exports = {hwDiv: hwDiv, toS32: toS32, M32: M32, M64: M64};
+
+// ===== ตรรกะวงจร (ใช้ทั้งในหน้าเว็บและตอนทดสอบ) =====
+function bitsOf(v, n) { var a = []; for (var i = 0; i < n; i++) a.push((v >> i) & 1); return a; }
+function faCalc(a, b, c) { var s1 = a ^ b, c1 = a & b, sum = s1 ^ c, c2 = s1 & c; return {A: a, B: b, C: c, S1: s1, C1: c1, C2: c2, SUM: sum, CO: c1 | c2}; }
+function addChain(a, b, cin) { // a, b: อาร์เรย์บิต LSB ก่อน
+  var n = a.length, c = [cin], s = [];
+  for (var i = 0; i < n; i++) { var f = faCalc(a[i], b[i], c[i]); s.push(f.SUM); c.push(f.CO); }
+  return {s: s, c: c};
+}
+// ตัวคูณ array 4x4 (ripple array): แถว i บวก partial product แถว i เข้ากับผลของแถวก่อนหน้า
+function arraySim(a, b) {
+  var N = 4, A = bitsOf(a, N), B = bitsOf(b, N), pp = [], S = [], C = [], p = [], i, j;
+  for (i = 0; i < N; i++) { pp.push([]); for (j = 0; j < N; j++) pp[i].push(A[j] & B[i]); }
+  S[0] = pp[0].slice(); p[0] = S[0][0];
+  for (i = 1; i < N; i++) {
+    S[i] = []; C[i] = [];
+    for (j = 0; j < N; j++) {
+      var x = pp[i][j];
+      var y = (i === 1) ? (j < N - 1 ? pp[0][j + 1] : 0) : (j < N - 1 ? S[i - 1][j + 1] : C[i - 1][N - 1]);
+      var cin = (j === 0) ? 0 : C[i][j - 1];
+      var f = faCalc(x, y, cin); S[i][j] = f.SUM; C[i][j] = f.CO;
+    }
+    p[i] = S[i][0];
+  }
+  p[N] = S[N - 1][1]; p[N + 1] = S[N - 1][2]; p[N + 2] = S[N - 1][3]; p[N + 3] = C[N - 1][N - 1];
+  var val = 0; for (i = 0; i < 2 * N; i++) val += p[i] * Math.pow(2, i);
+  return {A: A, B: B, pp: pp, S: S, C: C, p: p, value: val};
+}
+// datapath 4 บิตแบบ Approach 2: P = 8 บิต (HI|LO), M = 4 บิต ; คืนสัญญาณทุกจุดของรอบถัดไป
+function dpStep(P, M) {
+  var hi = (P >> 4) & 15, lo = P & 15, sel = P & 1;
+  var a = bitsOf(hi, 4), b = bitsOf(M, 4), ch = addChain(a, b, 0);
+  var s5 = [ch.s[0], ch.s[1], ch.s[2], ch.s[3], ch.c[4]];
+  var Pb = bitsOf(P, 8), nb = [], c, v;
+  for (c = 0; c < 8; c++) {
+    if (c <= 4) v = sel ? s5[4 - c] : (c === 0 ? 0 : Pb[8 - c]); else v = Pb[8 - c];
+    nb[7 - c] = v;
+  }
+  var np = 0; for (var i = 0; i < 8; i++) np += nb[i] * (1 << i);
+  return {hi: hi, lo: lo, sel: sel, a: a, b: b, fa: ch, s5: s5, Pb: Pb, nb: nb, next: np};
+}
+if (typeof module !== 'undefined') module.exports = {bitsOf: bitsOf, faCalc: faCalc, addChain: addChain, arraySim: arraySim, dpStep: dpStep};
+
+// datapath ตัวหาร 4 บิต (Approach 2): R = 8 บิต (HI|LO), D = ตัวหาร 4 บิต ; ตัวลบ 5 บิต = a + ~b + 1
+function dpDivStep(R, D) {
+  var hi = (R >> 4) & 15, lo = R & 15, s5 = (hi << 1) | (lo >> 3);
+  var a = bitsOf(s5, 5), b = bitsOf((~D) & 31, 5), fa = addChain(a, b, 1);
+  var sign = fa.s[4], ok = 1 - sign, Rb = bitsOf(R, 8), nb = [], c;
+  for (c = 0; c < 8; c++) {
+    var v;
+    if (c <= 3) v = ok ? fa.s[3 - c] : a[3 - c];
+    else if (c <= 6) v = Rb[6 - c];
+    else v = ok;
+    nb[7 - c] = v;
+  }
+  var np = 0; for (var i = 0; i < 8; i++) np += nb[i] * (1 << i);
+  var sv = 0; for (i = 0; i < 5; i++) sv += fa.s[i] << i; if (sv >= 16) sv -= 32;
+  return {hi: hi, lo: lo, D: D, s5: s5, a: a, b: b, fa: fa, sign: sign, ok: ok, tval: sv, Rb: Rb, nb: nb, next: np};
+}
+if (typeof module !== 'undefined') module.exports.dpDivStep = dpDivStep;
+
+// ===== ตัวสร้างภาพ SVG ของวงจร (คืนค่าเป็นสตริง) =====
+function Wp(d, v, extra) { return '<path class="ln' + (v ? ' on' : '') + (extra ? ' ' + extra : '') + '" d="' + d + '"/>'; }
+function Bub(x, y, v, r, label, lx) {
+  r = r || 9;
+  return '<circle class="bub' + (v ? ' on' : '') + '" cx="' + x + '" cy="' + y + '" r="' + r + '"/><text class="vt" x="' + x + '" y="' + (y + 4) + '">' + (v === null ? '?' : v) + '</text>' +
+    (label ? '<text class="tx" x="' + (lx === undefined ? x : lx) + '" y="' + (y - r - 3) + '" text-anchor="middle">' + label + '</text>' : '');
+}
+function Dot(x, y) { return '<circle cx="' + x + '" cy="' + y + '" r="3.5" style="fill:var(--fg)"/>'; }
+
+/* ---------- full adder ระดับเกต (สัญลักษณ์เกตจริง) ---------- */
+function gateSym(type, x, y, sig) {
+  var d = {AND: 'M0 0H12A12 12 0 0 1 12 24H0Z', OR: 'M0 0Q12 0 24 12Q12 24 0 24Q7 12 0 0Z', XOR: 'M3 0Q12 0 24 12Q12 24 3 24Q10 12 3 0Z'}[type];
+  return '<g transform="translate(' + x + ',' + y + ') scale(1.25)"><path class="gate" data-g="' + sig + '" d="' + d + '"/>' +
+    (type === 'XOR' ? '<path class="gate-l" d="M0 0Q7 12 0 24"/>' : '') + '</g><text class="tx" x="' + (x + 15) + '" y="' + (y + 43) + '" text-anchor="middle">' + type + '</text>';
+}
+function faGateSVG() {
+  var w = [['A', 'M22 37.5H93M55 37.5V97.5H90'], ['B', 'M22 75H70M70 52.5V112.5M70 52.5H93M70 112.5H90'],
+    ['S1', 'M120 45H150M150 37.5V142.5M150 37.5H213M150 142.5H210'], ['C', 'M22 180H180M180 52.5V180M180 52.5H213M180 157.5H210'],
+    ['C1', 'M120 105H323'], ['C2', 'M240 150H290V120H323'], ['SUM', 'M240 45H400'], ['CO', 'M350 112.5H400']];
+  var h = '<svg class="fag" viewBox="0 0 475 205" style="min-width:400px" role="img" aria-label="full adder ระดับเกต">';
+  w.forEach(function (x) { h += '<path class="ln" data-w="' + x[0] + '" d="' + x[1] + '"/>'; });
+  h += gateSym('XOR', 90, 30, 'S1') + gateSym('AND', 90, 90, 'C1') + gateSym('XOR', 210, 30, 'SUM') + gateSym('AND', 210, 135, 'C2') + gateSym('OR', 320, 97.5, 'CO');
+  h += Dot(55, 37.5) + Dot(70, 75) + Dot(150, 45) + Dot(180, 157.5);
+  h += '<text class="md" x="2" y="30" style="font-weight:700">A</text><text class="md" x="2" y="68" style="font-weight:700">B</text><text class="md" x="2" y="173" style="font-weight:700">Cin</text>';
+  h += '<text class="tx" data-t="S1" x="122" y="40"></text><text class="tx" data-t="C1" x="125" y="99"></text><text class="tx" data-t="C2" x="245" y="144"></text>';
+  h += '<text class="md" data-t="SUM" x="404" y="49" style="font-weight:700"></text><text class="md" data-t="CO" x="404" y="117" style="font-weight:700"></text>';
+  return h + '</svg>';
+}
+var FA_NAMES = {S1: 's1', C1: 'c1', C2: 'c2', SUM: 'Sum', CO: 'Cout'};
+function faGateSet(svg, a, b, c) {
+  var sig = faCalc(a, b, c);
+  svg.querySelectorAll('[data-w]').forEach(function (e) { e.classList.toggle('on', !!sig[e.getAttribute('data-w')]); });
+  svg.querySelectorAll('[data-g]').forEach(function (e) { e.classList.toggle('on', !!sig[e.getAttribute('data-g')]); });
+  svg.querySelectorAll('[data-t]').forEach(function (e) { var k = e.getAttribute('data-t'); e.textContent = FA_NAMES[k] + ' = ' + sig[k]; });
+  return sig;
+}
+
+/* ---------- ตัวบวกหลายบิต: full adder เป็นบล็อกต่อกัน (cout ซ้าย → cin ขวาของบล็อกถัดไป) ---------- */
+function chainSVG(o) { // o: a[], b[] (LSB ก่อน), cin, reveal, compact, sel, dim
+  var n = o.a.length, res = addChain(o.a, o.b, o.cin), rev = o.reveal === undefined ? n : o.reveal;
+  var cp = !!o.compact, pitch = o.pitch || (cp ? 40 : 84), bw = cp ? 26 : 56, r = cp ? 7 : 9, bh = cp ? 34 : 52, left = cp ? 46 : 64;
+  var cy = cp ? 22 : 26, ty = cp ? 46 : 52, by = ty + bh, cy2 = by + 26, W = left + n * pitch + (cp ? 50 : 72), H = cy2 + r + (cp ? 30 : 26), gap = pitch - bw, i;
+  var h = '<svg class="chn' + (cp ? '' : ' big') + '" viewBox="0 0 ' + W + ' ' + H + '" style="' + (cp ? 'width:' + W + 'px' : 'width:100%;min-width:' + (o.minw || 0) + 'px') + '" role="img" aria-label="ตัวบวก ' + n + ' บิต">';
+  for (i = 0; i < n; i++) {
+    var col = n - 1 - i, x = left + col * pitch, ok = i < rev, ax = x + bw * 0.28, bx = x + bw * 0.72, sx = x + bw / 2, yc = ty + bh / 2;
+    var s = res.s[i], co = res.c[i + 1], dimc = o.dim ? ' dim' : '';
+    h += '<g class="' + (o.dim ? 'dim' : '') + '">';
+    h += Wp('M' + ax + ' ' + (cy + r) + 'V' + ty, o.a[i]) + Wp('M' + bx + ' ' + (cy + r) + 'V' + ty, o.b[i]);
+    h += Wp('M' + sx + ' ' + by + 'V' + (cy2 - r), ok ? s : 0, ok ? '' : 'dash');
+    h += Wp('M' + x + ' ' + yc + 'H' + (x - gap), ok ? co : 0, ok ? '' : 'dash');
+    h += '<rect data-i="' + i + '" class="fab' + (ok && (s || co) ? ' on' : '') + (ok ? '' : ' pend') + (o.sel === i ? ' selb' : '') + '" x="' + x + '" y="' + ty + '" width="' + bw + '" height="' + bh + '" rx="6"/>';
+    h += '<text class="' + (cp ? 'tx' : 'md') + '" x="' + sx + '" y="' + (yc + 4) + '" text-anchor="middle" style="pointer-events:none">FA</text>';
+    h += Bub(ax, cy, o.a[i], r, cp ? '' : (o.aLabel || 'a')) + Bub(bx, cy, o.b[i], r, cp ? '' : (o.bLabel || 'b')) + Bub(sx, cy2, ok ? s : null, r);
+    if (!cp) h += Bub(x - gap / 2, yc, ok ? co : null, 6, 'ทด');
+    h += '<text class="tx" x="' + sx + '" y="' + (cy2 + r + 12) + '" text-anchor="middle">' + (cp ? (o.signIdx === i ? 'sign' : i) : (o.sumLabel ? o.sumLabel(i) : 'ผลบวก · บิต ' + i)) + '</text></g>';
+  }
+  var x0 = left + (n - 1) * pitch, yc0 = ty + bh / 2;
+  h += Wp('M' + (x0 + bw) + ' ' + yc0 + 'H' + (x0 + bw + gap + 4), o.cin) + Bub(x0 + bw + gap + 4 + r + 2, yc0, o.cin, r, 'Cin', x0 + bw + gap + 4 + r + 2);
+  var rv = rev >= n;
+  h += Wp('M' + left + ' ' + yc0 + 'H' + (left - gap - 6), rv ? res.c[n] : 0, rv ? '' : 'dash') + Bub(left - gap - 6 - r - 2, yc0, rv ? res.c[n] : null, r, 'Cout', left - gap - 6 - r - 2);
+  return {svg: h + '</svg>', res: res};
+}
+
+/* ---------- Array multiplier 4x4: ตาราง AND ---------- */
+function andGridSVG(sim) {
+  var h = '<svg viewBox="0 0 430 250" style="min-width:380px" role="img" aria-label="ตาราง AND 16 ตัว">', c, i, cx, cy;
+  for (c = 0; c < 4; c++) {
+    var j = 3 - c; cx = 80 + c * 85;
+    h += Wp('M' + (cx - 26) + ' 29V' + (62 + 3 * 44 - 7.5), sim.A[j]);
+  }
+  for (i = 0; i < 4; i++) {
+    cy = 62 + i * 44;
+    h += Wp('M29 ' + (cy + 22) + 'H' + (80 + 3 * 85 - 18), sim.B[i]);
+  }
+  for (c = 0; c < 4; c++) for (i = 0; i < 4; i++) {
+    var jj = 3 - c; cx = 80 + c * 85; cy = 62 + i * 44;
+    h += Wp('M' + (cx - 26) + ' ' + (cy - 7.5) + 'H' + (cx - 10), sim.A[jj]);
+    h += Wp('M' + (cx - 18) + ' ' + (cy + 22) + 'V' + (cy + 7.5) + 'H' + (cx - 10), sim.B[i]);
+    h += Wp('M' + (cx + 20) + ' ' + cy + 'H' + (cx + 36), sim.pp[i][jj]);
+    h += '<g transform="translate(' + (cx - 10) + ',' + (cy - 15) + ') scale(1.25)"><path class="gate' + (sim.pp[i][jj] ? ' on' : '') + '" d="M0 0H12A12 12 0 0 1 12 24H0Z"/></g>';
+    h += '<text class="tx" x="' + (cx + 8) + '" y="' + (cy + 3) + '" text-anchor="middle" style="pointer-events:none">AND</text>';
+    h += '<text class="tx" x="' + (cx + 31) + '" y="' + (cy - 5) + '" text-anchor="middle">a' + jj + 'b' + i + '</text>';
+    h += Dot(cx - 26, cy - 7.5) + Dot(cx - 18, cy + 22);
+  }
+  for (c = 0; c < 4; c++) { h += Bub(80 + c * 85 - 26, 20, sim.A[3 - c], 9, 'a' + (3 - c)); }
+  for (i = 0; i < 4; i++) { h += Bub(20, 62 + i * 44 + 22, sim.B[i], 9, 'b' + i); }
+  return h + '</svg>';
+}
+
+/* ---------- Array multiplier 4x4: แถว full adder (12 ตัว) ---------- */
+function arrayFASVG(sim) {
+  var X = function (c) { return 70 + c * 80; }, Y = function (i) { return 80 + (i - 1) * 100; }, bw = 60, bh = 46, c, i, j;
+  var h = '<svg viewBox="0 0 510 415" style="min-width:470px" role="img" aria-label="แถว full adder ของ array multiplier">';
+  var wires = '', blocks = '', bubs = '';
+  // แถว 0: a_j·b0
+  for (c = 0; c < 4; c++) {
+    j = 3 - c; bubs += Bub(X(c) + 30, 14, sim.pp[0][j], 8) + '<text class="tx" x="' + (X(c) + 18) + '" y="18" text-anchor="end">a' + j + 'b0</text>';
+    if (c >= 1) { // ป้อนเข้า y ของแถว 1 คอลัมน์ c
+      var lv = Y(1) - 46 + (c - 1) * 8;
+      wires += Wp('M' + (X(c - 1) + 30) + ' 22V' + lv + 'H' + (X(c) + 46) + 'V' + Y(1), sim.pp[0][4 - c]);
+    }
+  }
+  wires += Wp('M' + (X(3) + 38) + ' 14H452', sim.p[0]); bubs += Bub(474, 14, sim.p[0], 10) + '<text class="tx" x="474" y="36" text-anchor="middle">p0</text>';
+  for (i = 1; i <= 3; i++) {
+    for (c = 0; c < 4; c++) {
+      j = 3 - c; var x = X(c), y = Y(i), S = sim.S[i][j], C = sim.C[i][j];
+      // pp
+      wires += Wp('M' + (x + 14) + ' ' + (y - 6) + 'V' + y, sim.pp[i][j]);
+      bubs += Bub(x + 14, y - 14, sim.pp[i][j], 8) + '<text class="tx" x="' + (x + 2) + '" y="' + (y - 11) + '" text-anchor="end">a' + j + 'b' + i + '</text>';
+      // y input
+      if (i === 1 && c === 0) { wires += Wp('M' + (x + 46) + ' ' + y + 'V' + (y - 14), 0); bubs += '<text class="tx" x="' + (x + 46) + '" y="' + (y - 17) + '" text-anchor="middle">0</text>'; }
+      else if (c === 0) { wires += Wp('M' + x + ' ' + (Y(i - 1) + 23) + 'H' + (x - 24) + 'V' + (y - 30) + 'H' + (x + 46) + 'V' + y, sim.C[i - 1][3]); }
+      else if (i >= 2) { var lv2 = y - 46 + (c - 1) * 8; wires += Wp('M' + (X(c - 1) + 30) + ' ' + (Y(i - 1) + 46) + 'V' + lv2 + 'H' + (x + 46) + 'V' + y, sim.S[i - 1][4 - c]); }
+      // carry ภายในแถว (cout ซ้าย → cin ขวาของบล็อกซ้าย)
+      if (c >= 1) wires += Wp('M' + x + ' ' + (y + 23) + 'H' + (x - 20), C);
+      if (c === 3) { wires += Wp('M' + (x + 60) + ' ' + (y + 23) + 'H' + (x + 74), 0); bubs += '<text class="tx" x="' + (x + 80) + '" y="' + (y + 27) + '">0</text>'; }
+      blocks += '<rect class="fab' + (S || C ? ' on' : '') + '" x="' + x + '" y="' + y + '" width="' + bw + '" height="' + bh + '" rx="6"/><text class="md" x="' + (x + 30) + '" y="' + (y + 28) + '" text-anchor="middle">FA</text>';
+      // sum ออก
+      if (i === 3) { wires += Wp('M' + (x + 30) + ' ' + (y + 46) + 'V' + (y + 80), S); bubs += Bub(x + 30, y + 90, S, 10) + '<text class="tx" x="' + (x + 30) + '" y="' + (y + 112) + '" text-anchor="middle">p' + (6 - c) + '</text>'; }
+      else if (c === 3) { wires += Wp('M' + (x + 30) + ' ' + (y + 46) + 'V' + (y + 62) + 'H452', S); bubs += Bub(474, y + 62, S, 10) + '<text class="tx" x="474" y="' + (y + 84) + '" text-anchor="middle">p' + i + '</text>'; }
+    }
+  }
+  // p7 = carry ออกของแถว 3 คอลัมน์ซ้ายสุด
+  wires += Wp('M' + X(0) + ' ' + (Y(3) + 23) + 'H' + (X(0) - 24) + 'V' + (Y(3) + 80), sim.p[7]);
+  bubs += Bub(X(0) - 24, Y(3) + 90, sim.p[7], 10) + '<text class="tx" x="' + (X(0) - 24) + '" y="' + (Y(3) + 112) + '" text-anchor="middle">p7</text>';
+  return h + wires + blocks + bubs + '</svg>';
+}
+
+/* ---------- datapath 4 บิตแบบ Approach 2 (FA → MUX → flip-flop) ---------- */
+function dpSVG(st, P) {
+  var X = function (c) { return 30 + c * 52; }, h = '<svg viewBox="0 0 480 300" style="min-width:470px" role="img" aria-label="datapath 4 บิต"></svg>', c, i;
+  var w = '', b = '', t = '', sel = st.sel;
+  var Pb = st.Pb, nb = st.nb;
+  for (c = 0; c < 4; c++) {
+    i = 3 - c; var x = X(c), fs = st.fa.s[i], fc = st.fa.c[i + 1];
+    w += Wp('M' + (x + 11) + ' 48V62', st.a[i]) + Wp('M' + (x + 33) + ' 48V62', st.b[i]);
+    b += Bub(x + 11, 40, st.a[i], 8, 'HI' + i) + Bub(x + 33, 40, st.b[i], 8, 'M' + i);
+    t += '<rect class="fab' + (sel ? '' : ' pend') + (fs || fc ? ' on' : '') + '" x="' + x + '" y="62" width="44" height="40" rx="6"/><text class="md" x="' + (x + 22) + '" y="86" text-anchor="middle">FA</text>';
+    if (c >= 1) w += Wp('M' + x + ' 82H' + (x - 8), fc, sel ? '' : 'dim');
+    if (c === 3) { w += Wp('M' + (x + 44) + ' 82H' + (x + 56), 0); t += '<text class="tx" x="' + (x + 62) + '" y="86">Cin=0</text>'; }
+  }
+  // sum → mux in1 (diag) และ carry → mux0
+  var Sn = st.fa.s, cc = st.fa.c;
+  w += Wp('M' + X(0) + ' 82H' + (X(0) - 14) + 'V124H' + (X(0) + 12) + 'V150', cc[4], sel ? '' : 'dash');
+  for (c = 0; c < 4; c++) w += Wp('M' + (X(c) + 22) + ' 102V124H' + (X(c + 1) + 12) + 'V150', Sn[3 - c], sel ? '' : 'dash');
+  // mux 0..4
+  for (c = 0; c < 5; c++) {
+    var xm = X(c), o = nb[7 - c];
+    // in0
+    if (c === 0) { w += Wp('M' + (xm + 32) + ' 150V140', 0, sel ? 'dash' : ''); t += '<text class="tx" x="' + (xm + 32) + '" y="136" text-anchor="middle">0</text>'; }
+    else w += Wp('M' + (X(c - 1) + 40) + ' 232H' + (X(c - 1) + 46) + 'V138H' + (xm + 32) + 'V150', Pb[8 - c], sel ? 'dash' : '');
+    t += '<rect class="fab" x="' + xm + '" y="150" width="40" height="28" rx="5"/><text class="tx" x="' + (xm + 20) + '" y="163" text-anchor="middle" style="font-weight:700">MUX</text><text class="tx" x="' + (xm + 12) + '" y="174" text-anchor="middle">1</text><text class="tx" x="' + (xm + 32) + '" y="174" text-anchor="middle">0</text>';
+    w += Wp('M' + (xm + 20) + ' 178V210', o);
+  }
+  // flip-flop 0..7
+  for (c = 0; c < 8; c++) {
+    var xf = X(c), q = Pb[7 - c];
+    t += '<rect class="fab' + (q ? ' on' : '') + '" x="' + xf + '" y="210" width="40" height="44" rx="6"/><text class="tx" x="' + (xf + 20) + '" y="224" text-anchor="middle">D-FF</text><text class="vt" x="' + (xf + 20) + '" y="244" style="font-size:15px">' + q + '</text>';
+    t += '<path d="M' + (xf + 14) + ' 254L' + (xf + 20) + ' 247L' + (xf + 26) + ' 254" style="fill:none;stroke:var(--fg);stroke-width:1.2"/>';
+    t += '<text class="tx" x="' + (xf + 20) + '" y="268" text-anchor="middle">P' + (7 - c) + '</text>';
+    if (c >= 5) w += Wp('M' + (X(c - 1) + 40) + ' 232H' + xf, Pb[8 - c]);
+  }
+  w += Wp('M' + (X(7) + 40) + ' 232H' + (X(7) + 56), Pb[0]) ; b += Bub(X(7) + 66, 232, Pb[0], 9, 'P0', X(7) + 66);
+  t += '<path d="M' + (X(4) - 6) + ' 196V282" style="stroke:var(--muted);stroke-width:1.2;stroke-dasharray:4 4;fill:none"/><text class="md" x="' + (X(0) + 100) + '" y="288" text-anchor="middle">HI (ครึ่งซ้าย)</text><text class="md" x="' + (X(4) + 80) + '" y="288" text-anchor="middle">LO (ครึ่งขวา)</text>';
+  return '<svg class="dpv" viewBox="0 0 480 300" style="min-width:470px" role="img" aria-label="datapath 4 บิต">' + w + t + b + '</svg>';
+}
+
+/* ---------- ตัวบวก 32 ตัวของรอบหนึ่งในเครื่อง 32 บิต (compact) ---------- */
+function bitsBig(v, n) { var a = []; for (var i = 0; i < n; i++) a.push(Number((v >> BigInt(i)) & 1n)); return a; }
+
+/* ---------- datapath ตัวหาร 4 บิต (ตัวลบ 5 บิต → MUX → flip-flop, เลื่อนซ้าย) ---------- */
+function dpDivSVG(st, R) {
+  var X = function (c) { return 30 + c * 52; }, w = '', t = '', b = '', c, k;
+  var Rb = st.Rb, ok = st.ok, nb = st.nb, fa = st.fa;
+  // ตัวลบ 5 ตัว (คอลัมน์ 0..4 ↔ บิต 4..0)
+  for (c = 0; c < 5; c++) {
+    k = 4 - c; var x = X(c);
+    w += Wp('M' + (x + 33) + ' 48V62', st.b[k]) + Wp('M' + (x + 11) + ' 48V62', st.a[k]);
+    b += Bub(x + 11, 40, st.a[k], 8, 'a') + Bub(x + 33, 40, st.b[k], 8, '~b');
+    t += '<text class="tx" x="' + (x + 22) + '" y="16" text-anchor="middle">บิต ' + k + (k === 4 ? ' sign' : '') + '</text>';
+    t += '<rect class="fab' + (fa.s[k] || fa.c[k + 1] ? ' on' : '') + '" x="' + x + '" y="62" width="44" height="40" rx="6"/><text class="md" x="' + (x + 22) + '" y="86" text-anchor="middle">FA</text>';
+    if (c >= 1) w += Wp('M' + x + ' 82H' + (x - 8), fa.c[k + 1]);
+  }
+  w += Wp('M' + (X(4) + 44) + ' 82H' + (X(4) + 58), 1); t += '<text class="tx" x="' + (X(4) + 62) + '" y="86">Cin=1</text>';
+  // Q ของ flip-flop → a ของตัวลบ (สายขึ้นทางช่องว่างด้านซ้ายของคอลัมน์) และ → MUX ของคอลัมน์ซ้ายมือ
+  for (c = 0; c <= 4; c++) {
+    w += Wp('M' + X(c) + ' 232H' + (X(c) - 6) + 'V54H' + (X(c) + 11), Rb[7 - c]);
+    if (c >= 1) w += Wp('M' + (X(c) - 6) + ' 138H' + (X(c - 1) + 32) + 'V150', Rb[7 - c], ok ? 'dash' : '');
+  }
+  // ผลลบ → MUX (ดึงจากคอลัมน์ขวา) ; ผลลบบิต 4 = เครื่องหมาย
+  for (c = 0; c < 4; c++) w += Wp('M' + (X(c + 1) + 22) + ' 102V124H' + (X(c) + 10) + 'V150', fa.s[3 - c], ok ? '' : 'dash');
+  w += Wp('M' + (X(0) + 22) + ' 102V112H' + (X(0) - 14) + 'V138', st.sign);
+  t += '<rect class="fab" x="' + (X(0) - 24) + '" y="138" width="20" height="18" rx="3"/><text class="tx" x="' + (X(0) - 14) + '" y="150" text-anchor="middle" style="font-weight:700">NOT</text>';
+  b += Bub(X(0) - 14, 124, st.sign, 8, 'sign', X(0) - 6);
+  w += Wp('M' + (X(0) - 14) + ' 156V192H' + (X(7) + 62) + 'V232H' + (X(7) + 40), ok);
+  b += Bub(X(0) - 14, 176, ok, 8, 'ok', X(0) - 14);
+  // MUX 0..3
+  for (c = 0; c < 4; c++) {
+    var xm = X(c);
+    t += '<rect class="fab" x="' + xm + '" y="150" width="40" height="28" rx="5"/><text class="tx" x="' + (xm + 20) + '" y="163" text-anchor="middle" style="font-weight:700">MUX</text><text class="tx" x="' + (xm + 10) + '" y="174" text-anchor="middle">1</text><text class="tx" x="' + (xm + 32) + '" y="174" text-anchor="middle">0</text>';
+    w += Wp('M' + (xm + 8) + ' 192V178', ok) + Wp('M' + (xm + 30) + ' 178V210', nb[7 - c]);
+  }
+  // flip-flop 0..7 (Q ด้านซ้าย, D จากบน หรือจากด้านขวา)
+  for (c = 0; c < 8; c++) {
+    var xf = X(c), q = Rb[7 - c];
+    t += '<rect class="fab' + (q ? ' on' : '') + '" x="' + xf + '" y="210" width="40" height="44" rx="6"/><text class="tx" x="' + (xf + 20) + '" y="224" text-anchor="middle">D-FF</text><text class="vt" x="' + (xf + 20) + '" y="244" style="font-size:15px">' + q + '</text>';
+    t += '<path d="M' + (xf + 14) + ' 254L' + (xf + 20) + ' 247L' + (xf + 26) + ' 254" style="fill:none;stroke:var(--fg);stroke-width:1.2"/>';
+    t += '<text class="tx" x="' + (xf + 20) + '" y="268" text-anchor="middle">' + (c < 4 ? 'HI' + (3 - c) : 'LO' + (7 - c)) + '</text>';
+    if (c >= 5) w += Wp('M' + X(c) + ' 232H' + (X(c - 1) + 40), Rb[7 - c]);
+    if (c === 4) w += Wp('M' + X(5) + ' 232H' + (X(4) + 40), Rb[2]);
+  }
+  t += '<path d="M' + (X(4) - 6) + ' 196V282" style="stroke:var(--muted);stroke-width:1.2;stroke-dasharray:4 4;fill:none"/><text class="md" x="' + (X(0) + 100) + '" y="288" text-anchor="middle">HI = เศษ</text><text class="md" x="' + (X(4) + 80) + '" y="288" text-anchor="middle">LO = Dividend → ผลหาร</text>';
+  return '<svg class="dpv" viewBox="0 0 490 300" style="min-width:480px" role="img" aria-label="datapath ตัวหาร 4 บิต">' + w + t + b + '</svg>';
+}
+
+</script>
+<script>
+(function(){
+function $(id){return document.getElementById(id);}
+function mkBits(id,arr,cb){
+  var c=$(id);c.innerHTML='';
+  arr.forEach(function(v,i){var b=document.createElement('button');b.onclick=function(){arr[i]^=1;cb();};c.appendChild(b);});
+  return function(){var bs=c.children;for(var i=0;i<arr.length;i++){bs[i].textContent=arr[i];bs[i].className=arr[i]?'on':'';}};
+}
+function bin(v,w){var s=v.toString(2);while(s.length<w)s='0'+s;return s;}
+
+/* ---------- 1 หารยาว 4 บิต ---------- */
+(function(){
+  var a=[0,1,1,1],b=[0,0,1,0],ua,ub; // 7 ÷ 2
+  function val(x){return x[0]*8+x[1]*4+x[2]*2+x[3];}
+  function draw(){
+    ua();ub();
+    var A=val(a),D=val(b);
+    $('pa-av').textContent='= '+A;$('pa-bv').textContent='= '+D;
+    if(D===0){$('pa-t').innerHTML='';$('pa-i').innerHTML='<span class="bad">ตัวหารเป็น 0 หารไม่ได้</span> · ฮาร์ดแวร์ต้องตรวจก่อนเสมอ';return;}
+    var h='<tr><th>รอบ</th><th>ส่วนที่ได้</th><th>เทียบ</th><th>q</th><th>เหลือ</th></tr>',R=0,q='';
+    for(var i=3;i>=0;i--){
+      var bit=a[3-i],cur=R*2+bit,ok=cur>=D;
+      h+='<tr><td>'+(4-i)+'</td><td>'+R+'×2+'+bit+' = <b>'+cur+'</b></td><td>'+cur+(ok?' ≥ ':' < ')+D+'</td><td class="mono"><b>'+(ok?1:0)+'</b></td><td>'+(ok?(cur-D):cur+' (ไม่ลบ)')+'</td></tr>';
+      if(ok)cur-=D;R=cur;q+=ok?'1':'0';
+    }
+    $('pa-t').innerHTML=h;
+    var Q=parseInt(q,2);
+    $('pa-i').innerHTML='ผลหาร = <b>'+q+'</b> ('+Q+') · เศษ = <b>'+bin(R,4)+'</b> ('+R+') · ตรวจ: '+D+' × '+Q+' + '+R+' = '+(D*Q+R)+' <span class="ok">'+((D*Q+R)===A?'✓':'✗')+'</span>';
+  }
+  ua=mkBits('pa-a',a,draw);ub=mkBits('pa-b',b,draw);draw();
+  document.querySelectorAll('#pa-ex .chip').forEach(function(c){c.onclick=function(){var p=c.getAttribute('data-pa').split(',');var A=+p[0],D=+p[1];for(var i=0;i<4;i++){a[i]=(A>>(3-i))&1;b[i]=(D>>(3-i))&1;}draw();};});
+})();
+
+/* ---------- 2 full adder ระดับเกต ---------- */
+(function(){
+  var A=[1],B=[1],C=[0],ua,ub,uc;
+  $('fa-sv').innerHTML=faGateSVG();
+  function draw(){
+    ua();ub();uc();
+    var f=faGateSet($('fa-sv').querySelector('svg'),A[0],B[0],C[0]);
+    $('fa-i').innerHTML=A[0]+' + '+B[0]+' + '+C[0]+' = <b>'+(A[0]+B[0]+C[0])+'</b> = <b>'+f.CO+f.SUM+'</b> (ฐาน 2) → Sum <b>'+f.SUM+'</b>, ทด <b>'+f.CO+'</b>';
+  }
+  ua=mkBits('fa-a',A,draw);ub=mkBits('fa-b',B,draw);uc=mkBits('fa-c',C,draw);draw();
+})();
+
+/* ---------- ตัวลบ 5 บิต ---------- */
+(function(){
+  var a=[0,1,1,1],b=[0,0,1,0],ua,ub,reveal=5,timer=null; // 7 − 2
+  function stop(){clearInterval(timer);timer=null;}
+  function val(x){return x[0]*8+x[1]*4+x[2]*2+x[3];}
+  function draw(){
+    ua();ub();
+    var A=a.slice().reverse().concat([0]),Bv=b.slice().reverse(),Bn=Bv.map(function(x){return 1-x;}).concat([1]),i;
+    var o=chainSVG({a:A,b:Bn,cin:1,reveal:reveal,aLabel:'a',bLabel:'~b',pitch:72,minw:0,signIdx:4,
+      sumLabel:function(i){return i===4?'sign · บิต 4':'ผลลบ · บิต '+i;}});
+    $('sb-sv').innerHTML=o.svg;
+    $('sb-av').textContent='= '+val(a);$('sb-bv').textContent='= '+val(b);
+    var res=o.res,h='';
+    for(i=0;i<5;i++){
+      var t=A[i]+Bn[i]+res.c[i];
+      h+='<li class="'+(i<reveal?'':'pend')+'"><b>บิต '+i+':</b> a='+A[i]+' + ~b='+Bn[i]+' + ทดเข้า '+res.c[i]+(i===0?' (Cin=1)':'')+' = '+t+' (ฐาน 2 คือ '+(t>>1)+''+(t&1)+') → ผล <b>'+res.s[i]+'</b>, ทดออก <b>'+res.c[i+1]+'</b></li>';
+    }
+    $('sb-st').innerHTML=h;
+    var d=val(a)-val(b),sg=res.s[4];
+    $('sb-i').innerHTML=reveal<5?'ตัวทดกำลังวิ่งจากขวาไปซ้าย… คิดเสร็จแล้ว '+reveal+' หลัก (หลักซ้ายต้อง<b>รอ</b>ตัวทดจากหลักขวา)':
+      val(a)+' − '+val(b)+' = <b>'+d+'</b> · อ่านผล 5 บิตจากวงกลมล่าง ซ้าย→ขวา: <b>'+res.s[4]+res.s[3]+res.s[2]+res.s[1]+res.s[0]+'</b><br>บิตซ้ายสุด (บิต 4) = <b>'+sg+'</b> → '+(sg?'<b class="bad">ติดลบ</b>: ลบไม่ได้ ไม่เก็บผล (restore) ใส่ q = 0':'<b class="ok">ไม่ติดลบ</b>: ลบได้ เก็บผล ใส่ q = 1');
+  }
+  function chg(){stop();reveal=5;draw();}
+  ua=mkBits('sb-a',a,chg);ub=mkBits('sb-b',b,chg);
+  $('sb-go').onclick=function(){stop();reveal=0;draw();timer=setInterval(function(){reveal++;draw();if(reveal>=5)stop();},800);};
+  $('sb-all').onclick=chg;
+  draw();
+})();
+
+/* ---------- 3 แผนภาพ ---------- */
+(function(){
+  var T={
+    div:'<b>Divisor</b> = ตัวหาร 32 บิต เก็บค่าคงที่ ไม่เลื่อน (ต่างจาก Approach 1 ที่ต้องเลื่อนขวา)',
+    alu:'<b>ALU 32 บิต</b> ทำแค่ "ลบ": เอาส่วนของ Remainder ลบ Divisor (กลับบิต Divisor + Cin = 1) แล้วส่งบิตเครื่องหมายไปให้ Control',
+    hi:'<b>HI</b> = ครึ่งซ้ายของ Remainder เริ่มเป็น 0 สุดท้ายคือ <b>เศษ</b> ของการหาร',
+    lo:'<b>LO</b> = ครึ่งขวา เริ่มเป็น Dividend พอเลื่อนซ้าย บิตของ Dividend ไหลเข้า HI ทีละบิต และมีที่ว่างทางขวาไว้ใส่บิต <b>ผลหาร</b> พอดี',
+    ctl:'<b>Control</b> ดูเครื่องหมายของผลลบ: ไม่ติดลบ → เก็บผลลง HI และใส่ q = 1 · ติดลบ → ไม่เก็บ (restore) ใส่ q = 0 ทำครบ 32 รอบ',
+    shift:'<b>เลื่อนซ้าย</b> = ต่อสายให้เยื้อง 1 ตำแหน่ง ไม่ต้องมีวงจรคำนวณ ("One cycle per partial-remainder subtraction") จึงเลื่อน ลบ และตัดสินใจจบใน <b>1 cycle</b>'
+  };
+  document.querySelectorAll('#mc-svg .blk').forEach(function(g){
+    g.onclick=function(){
+      document.querySelectorAll('#mc-svg .blk').forEach(function(x){x.classList.remove('sel');});
+      g.classList.add('sel');$('mc-i').innerHTML=T[g.getAttribute('data-k')];
+    };
+  });
+})();
+
+/* ---------- datapath ตัวหาร 4 บิต ---------- */
+(function(){
+  var aa=[1,1,0,1],d=[0,0,1,1],ua,ud,R=0,k=0; // 13 ÷ 3
+  function V(x){return x[0]*8+x[1]*4+x[2]*2+x[3];}
+  function b4(v){var q=v.toString(2);while(q.length<4)q='0'+q;return q;}
+  function reset(){R=V(aa);k=0;draw();}
+  function draw(){
+    ua();ud();
+    $('dd-av').textContent='= '+V(aa);$('dd-dv').textContent='= '+V(d);
+    var D=V(d);
+    if(D===0){$('dd-sv').innerHTML='';$('dd-i').innerHTML='<span class="bad">ตัวหารเป็น 0 หารไม่ได้</span> · ฮาร์ดแวร์ต้องตรวจก่อนเสมอ';$('dd-clk').disabled=true;$('dd-clk').style.opacity=.4;return;}
+    var st=dpDivStep(R,D);
+    $('dd-sv').innerHTML=dpDivSVG(st,R);
+    var t;
+    if(k===0)t='เริ่มต้น: HI = 0000, LO = '+b4(V(aa))+' (Dividend) · <b>รอบที่ 1:</b> เลื่อนซ้าย → ส่วนที่ได้ = '+st.s5+' · ลบ '+D+': '+st.s5+' − '+D+' = <b>'+st.tval+'</b> → sign = '+st.sign+' → '+(st.ok?'<b>ok</b>: MUX เลือกผลลบ, q = 1':'<b>ไม่ ok</b>: MUX เลือกค่าเดิม, q = 0')+' · กด clock';
+    else if(k<4)t='<b>ผ่านมา '+k+' รอบ</b> · HI|LO = <b>'+b4(st.hi)+' | '+b4(st.lo)+'</b> · <b>รอบที่ '+(k+1)+':</b> ส่วนที่ได้ = '+st.s5+' · '+st.s5+' − '+D+' = <b>'+st.tval+'</b> → '+(st.ok?'<b>ok</b>: เก็บผลลบ, q = 1':'<b>ไม่ ok</b>: ใช้ค่าเดิม, q = 0');
+    else{var rem=st.hi,q=st.lo,A=V(aa);t='<b>ครบ 4 รอบ</b> · HI = เศษ = <b>'+rem+'</b>, LO = ผลหาร = <b>'+q+'</b> · ตรวจ: '+D+' × '+q+' + '+rem+' = '+(D*q+rem)+' <span class="'+(D*q+rem===A?'ok">✓':'bad">✗')+'</span> (เส้นในภาพตอนนี้ไม่ถูกใช้ต่อ)';}
+    $('dd-i').innerHTML=t;
+    $('dd-clk').disabled=k>=4;$('dd-clk').style.opacity=k>=4?.4:1;
+  }
+  ua=mkBits('dd-a',aa,reset);ud=mkBits('dd-d',d,reset);
+  $('dd-clk').onclick=function(){if(k<4&&V(d)>0){R=dpDivStep(R,V(d)).next;k++;draw();}};
+  $('dd-rst').onclick=reset;
+  reset();
+})();
+
+/* ---------- 4 เดโมหาร + stepper ---------- */
+(function(){
+  var cur=null,k=0,timer=null;
+  function parse(s){
+    s=String(s).trim().replace(/[,_\s]/g,'');
+    if(!s)return null;
+    try{
+      var neg=false;if(s[0]==='-'){neg=true;s=s.slice(1);}else if(s[0]==='+')s=s.slice(1);
+      if(!/^(0x[0-9a-f]+|[0-9]+)$/i.test(s))return null;
+      var v=BigInt(s);if(neg)v=-v;
+      if(v>=(1n<<32n)||v<-(1n<<31n))return 'range';
+      return v;
+    }catch(e){return null;}
+  }
+  function hex(v,w){var s=v.toString(16);while(s.length<w)s='0'+s;return '0x'+s;}
+  function cells(id,v,b0,chg){
+    var h='';
+    for(var g=7;g>=0;g--){
+      h+='<div class="nib">';
+      for(var j=3;j>=0;j--){
+        var bit=g*4+j,on=((v>>BigInt(bit))&1n)===1n;
+        h+='<div class="c'+(on?' on':'')+(b0&&bit===0?' b0':'')+(chg&&((chg>>BigInt(bit))&1n)===1n?' chg':'')+'"></div>';
+      }
+      h+='</div>';
+    }
+    $(id).innerHTML=h;
+  }
+  function renderSub(r,k){
+    var box=$('s-sub'),cap=$('s-subc');
+    if(!r||k===0){box.innerHTML='';cap.textContent=r?'กด "ถัดไป" แล้วจะเห็นตัวลบ 33 ตัวของแต่ละรอบ':'';return;}
+    var kk=Math.min(k,32),s=r.steps[kk],MASK=(1n<<33n)-1n;
+    var o=chainSVG({a:bitsBig(s.shifted,33),b:bitsBig((~r.D)&MASK,33),cin:1,compact:true,dim:!s.ok,signIdx:32});
+    var sl=box.scrollLeft;box.innerHTML=o.svg;box.scrollLeft=sl||box.scrollWidth;
+    cap.innerHTML='รอบ '+kk+': ส่วนที่ได้ ('+s.shifted+') − Divisor ('+r.D+') = <b>'+s.t+'</b> · บิต sign = '+(s.ok?0:1)+' → '+(s.ok?'ไม่ติดลบ: <b>ใช้ผลลบนี้</b> เก็บลง HI, q = 1':'ติดลบ: ตัวลบยังคำนวณ แต่ MUX <b>เลือกค่าเดิม</b> (ผลจางลง), q = 0');
+  }
+  function max(){return cur?(cur.fix?33:32):32;}
+  function clearSteps(msg){
+    cells('s-mc',0n);cells('s-hi',0n);cells('s-lo',0n);$('s-hih').textContent='';$('s-loh').textContent='';
+    $('s-op').innerHTML=msg;$('s-r').max=32;$('s-r').value=0;renderSub(null,0);
+  }
+  function compute(){
+    var pa=parse($('t-a').value),pb=parse($('t-b').value),sg=$('t-m').value==='s',out=$('t-out');
+    if(pa==='range'||pb==='range'){out.innerHTML='<div class="wide bad">เลขต้องอยู่ในช่วง 32 บิต (−2³¹ ถึง 2³²−1)</div>';cur=null;clearSteps('');return;}
+    if(pa===null||pb===null){out.innerHTML='<div class="wide bad">กรอกเป็นเลขฐาน 10 หรือ 0x… (ฐาน 16)</div>';cur=null;clearSteps('');return;}
+    var ra=pa&M32,rb=pb&M32,va=sg?toS32(ra):ra,vb=sg?toS32(rb):rb;
+    var head='<div><div class="k">$s1 → ตีความเป็น</div><div class="v">'+hex(ra,8)+' = '+va+'</div></div><div><div class="k">$s2 → ตีความเป็น</div><div class="v">'+hex(rb,8)+' = '+vb+'</div></div>';
+    if(vb===0n){
+      out.innerHTML=head+'<div class="wide"><div class="k">หารด้วย 0</div><div class="v bad" style="font-size:.95rem">ผลใช้ไม่ได้</div><div class="k" style="margin-top:4px">MIPS ไม่ตรวจให้ ค่าใน HI/LO ไม่มีความหมาย ซอฟต์แวร์ต้องตรวจก่อนหาร เช่น <span class="mono">beq $s2, $zero, error</span> (สไลด์: "Check for 0 divisor")</div></div>';
+      cur=null;clearSteps('<b>หารด้วย 0 ไม่มีขั้นตอนให้ดู</b>');return;
+    }
+    var r=hwDiv(va,vb,sg);cur=r;
+    var q=sg?toS32(r.lo):r.lo,rem=sg?toS32(r.hi):r.hi;
+    var ovf=sg&&va===-(1n<<31n)&&vb===-1n;
+    var chk=ovf?'<span class="bad">ล้น: ผลหารจริง +2³¹ เกินช่วง (MIPS ไม่ตรวจ)</span>':('ตรวจ: '+vb+' × ('+q+') + ('+rem+') = '+(vb*q+rem)+' <span class="'+(vb*q+rem===va?'ok">✓':'bad">✗')+'</span>');
+    out.innerHTML=head+
+     '<div><div class="k">HI (mfhi) = เศษ</div><div class="v" style="color:var(--hi)">'+hex(r.hi,8)+'</div><div class="k">= '+rem+'</div></div>'+
+     '<div><div class="k">LO (mflo) = ผลหาร</div><div class="v" style="color:var(--lo)">'+hex(r.lo,8)+'</div><div class="k">= '+q+'</div></div>'+
+     '<div class="wide"><div class="k">'+va+' ÷ '+vb+' = '+q+' เศษ '+rem+'</div><div class="k" style="margin-top:4px">'+chk+' · ใช้ <b>32 cycle</b>'+(r.fix?' + ขั้นปรับเครื่องหมาย':'')+'</div></div>';
+    $('s-r').max=max();k=0;$('s-r').value=0;show();
+  }
+  function show(){
+    if(!cur)return;
+    var r=cur,hi,lo,chg=null,t,b0=false;
+    if(k<=32){var st=r.steps[k];hi=st.HI;lo=st.LO;
+      if(k>0){chg=(r.steps[k-1].HI^st.HI)&M32;b0=true;}
+    }else{hi=r.hi;lo=r.lo;}
+    cells('s-mc',r.D,false);cells('s-hi',hi,false,chg);cells('s-lo',lo,b0);
+    $('s-hih').textContent=hex(hi,8);$('s-loh').textContent=hex(lo,8);
+    if(k===0)t='เริ่มต้น: HI = 0, LO = Dividend'+(r.fix?' (เลขมีเครื่องหมาย: ทำเป็นบวกก่อน ใช้ |A|='+r.A+', |B|='+r.D+')':'')+' · กด "ถัดไป"';
+    else if(k<=32){var s=r.steps[k];
+      t='<b>รอบ '+k+'/32</b> · เลื่อนซ้าย → ส่วนที่ได้ = <b>'+s.shifted+'</b> · ลบ Divisor: '+s.shifted+' − '+r.D+' = <b>'+s.t+'</b> → '+(s.ok?'ไม่ติดลบ → <b>เก็บผล, q = 1</b>':'ติดลบ → <b>ไม่เก็บ (restore), q = 0</b>');
+      if(k===32)t+='<br><b>ครบ 32 รอบ: HI = เศษ, LO = ผลหาร</b>'+(r.fix?' · เหลือขั้นปรับเครื่องหมาย':'');}
+    else t='<b>ขั้นสุดท้าย:</b> ปรับเครื่องหมาย'+(r.negQ?' · ผลหารเป็นลบ (เครื่องหมายตัวตั้ง ≠ ตัวหาร) → กลับเครื่องหมาย LO':'')+(r.negR?' · เศษเป็นลบ (ตามตัวตั้ง) → กลับเครื่องหมาย HI':'');
+    $('s-op').innerHTML=t;$('s-r').value=k;renderSub(r,k);
+  }
+  function stop(){clearInterval(timer);timer=null;$('s-play').textContent='เล่นอัตโนมัติ';}
+  $('t-go').onclick=function(){stop();compute();};
+  $('s-step').onclick=function(){stop();if(cur&&k<max()){k++;show();}};
+  $('s-end').onclick=function(){stop();if(cur){k=max();show();}};
+  $('s-reset').onclick=function(){stop();k=0;show();};
+  $('s-r').oninput=function(){stop();k=+this.value;show();};
+  $('s-play').onclick=function(){
+    if(timer){stop();return;}
+    if(!cur)return;if(k>=max())k=0;
+    $('s-play').textContent='หยุด';
+    timer=setInterval(function(){if(k<max()){k++;show();}else stop();},420);
+  };
+  document.querySelectorAll('.chip[data-ex]').forEach(function(c){c.onclick=function(){
+    var p=c.getAttribute('data-ex').split('|');$('t-a').value=p[0];$('t-b').value=p[1];$('t-m').value=p[2];stop();compute();};});
+  ['t-a','t-b'].forEach(function(id){$(id).onkeydown=function(e){if(e.key==='Enter'){stop();compute();}};});
+  $('t-m').onchange=function(){stop();compute();};
+  compute();
+})();
+
+/* ---------- 5 เทียบ ---------- */
+(function(){
+  function draw(v){
+    var h='';
+    for(var i=1;i<=4;i++){
+      if(v==='1')h+='<span class="a">'+i+' ลบ</span><span class="m">'+i+' ตัดสินใจ/restore+เลื่อน Q</span><span class="r">'+i+' เลื่อน Divisor ขวา</span>';
+      else h+='<span class="z">'+i+' เลื่อน+ลบ+ตัดสินใจ</span>';
+    }
+    h+='<span style="color:var(--muted);font-size:.8rem">… ครบ '+(v==='1'?'33':'32')+' รอบ</span>';
+    $('cm-tl').innerHTML=h;
+    $('cm-cap').textContent=v==='1'?'แบบ 1: รอบละ 3 ขั้นย่อย ทำ 33 รอบ (Divisor เริ่มที่ครึ่งซ้าย จึงมี N+1 ตำแหน่งให้เทียบ) → 99 ขั้น':'แบบ 2: เลื่อน ลบ และตัดสินใจจบใน 1 cycle (เลื่อนคือการต่อสาย) → 32 cycle';
+    document.querySelectorAll('#w-cmp .btns button').forEach(function(b){b.className=b.getAttribute('data-v')===v?'p':'';});
+  }
+  document.querySelectorAll('#w-cmp .btns button').forEach(function(b){b.onclick=function(){draw(b.getAttribute('data-v'));};});
+  draw('2');
+})();
+})();
+</script>
+</body>
+</html>

@@ -134,6 +134,12 @@ svg .ln.dim,svg g.dim{opacity:.35}
 .rs .b{width:34px;text-align:center;border:1px solid var(--line);border-radius:8px;font-family:ui-monospace,monospace;font-weight:700;background:var(--bg)}
 .rs .b.on{background:var(--orange-soft);border-color:var(--orange);color:var(--orange)}
 .rs .b small{display:block;font-size:.62rem;color:var(--muted);font-weight:400}
+.steps{padding-left:1.2em;margin:8px 0;font-size:.92rem}
+.steps li{margin:4px 0}
+.steps li.pend{opacity:.35}
+.legend{margin:4px 0 8px;line-height:1.6}
+svg.chn.big .tx{font-size:12px}
+svg.chn.big .vt{font-size:12.5px}
 </style>
 </head>
 <body>
@@ -167,17 +173,22 @@ svg .ln.dim,svg g.dim{opacity:.35}
 </div>
 <p class="sub">เอามาต่อกัน: <b>Cout ของหลักล่าง → Cin ของหลักบน</b> ได้ตัวบวกหลายบิต ลอง 4 บิต แล้วกด "ปล่อย carry" ดูตัวทดวิ่งทีละหลัก</p>
 <div class="card" id="w-add4">
-  <div class="row"><span class="lab">A</span><span class="bits" id="a4-a"></span></div>
-  <div class="row"><span class="lab">B</span><span class="bits" id="a4-b"></span></div>
+  <div class="row"><span class="lab">A</span><span class="bits" id="a4-a"></span><span class="big" id="a4-av"></span></div>
+  <div class="row"><span class="lab">B</span><span class="bits" id="a4-b"></span><span class="big" id="a4-bv"></span></div>
   <div class="btns"><button class="p" id="a4-go">▶ ปล่อย carry</button><button id="a4-all">แสดงผลทันที</button></div>
   <div class="sv" id="a4-sv"></div>
+  <div class="lab legend"><b>วิธีอ่านภาพ</b> · วงกลมบน 2 อัน = <b>a</b> (ซ้าย) กับ <b>b</b> (ขวา) ที่เข้ามาบวกกัน · วงกลมล่าง = <b>ผลบวก</b> ของหลักนั้น · วงกลมเล็กบนเส้นระหว่างกล่อง = <b>ตัวทด</b> ที่ส่งจากขวาไปซ้าย · ส้ม = 1, เทา = 0</div>
+  <div class="lab" style="margin-top:6px"><b>คิดทีละหลัก (เริ่มจากบิต 0 ทางขวา)</b></div>
+  <ol class="steps" id="a4-st" style="list-style:none;padding-left:0"></ol>
   <div class="info" id="a4-i"></div>
 </div>
 <p class="sub">ต่อให้ครบ <b>32 ตัว</b> ก็ได้ตัวบวกที่เครื่องคูณใช้ กดตัวอย่างดูตัวทดวิ่ง แล้วกดบล็อก FA ใดก็ได้เพื่อ<b>ซูมเข้าไปดูเกตข้างใน</b></p>
 <div class="card" id="w-rip">
   <div class="btns"><button class="p" data-p="a">0xFFFFFFFF + 1</button><button data-p="b">5 + 3</button><button data-p="c">0x00FF00FF + 0x00010001</button></div>
+  <div class="info" id="rp-cap"></div>
   <div class="sv" id="rp-sv"></div>
-  <div class="info" id="rp-i">เลือกตัวอย่าง · เลื่อนซ้าย/ขวาดูทุกหลัก (บิต 0 อยู่ขวาสุด)</div>
+  <div class="lab legend"><b>วิธีอ่านภาพ</b> · ย่อจากภาพ 4 บิตข้างบน: แต่ละกล่อง FA = 1 หลัก · วงกลมบน 2 อัน = a กับ b · วงกลมล่าง = ผลบวก · <b>เส้นส้มต่อกันยาว = ตัวทดวิ่งต่อเนื่อง</b> · บิต 0 อยู่ขวาสุด เลื่อนดูด้วยแถบด้านล่าง</div>
+  <div class="info" id="rp-i">เลือกตัวอย่างด้านบน</div>
   <div class="lab" style="margin-top:10px" id="rp-zl"></div>
   <div class="sv" id="rp-zoom"></div>
 </div>
@@ -389,9 +400,9 @@ function faGateSet(svg, a, b, c) {
 /* ---------- ตัวบวกหลายบิต: full adder เป็นบล็อกต่อกัน (cout ซ้าย → cin ขวาของบล็อกถัดไป) ---------- */
 function chainSVG(o) { // o: a[], b[] (LSB ก่อน), cin, reveal, compact, sel, dim
   var n = o.a.length, res = addChain(o.a, o.b, o.cin), rev = o.reveal === undefined ? n : o.reveal;
-  var cp = !!o.compact, pitch = cp ? 40 : 76, bw = cp ? 26 : 56, r = cp ? 7 : 9, bh = cp ? 34 : 52, left = cp ? 46 : 54;
-  var cy = 22, ty = 46, by = ty + bh, cy2 = by + 26, W = left + n * pitch + (cp ? 50 : 72), H = cy2 + r + (cp ? 30 : 26), gap = pitch - bw, i;
-  var h = '<svg class="chn" viewBox="0 0 ' + W + ' ' + H + '" style="' + (cp ? 'width:' + W + 'px' : 'width:100%;min-width:400px') + '" role="img" aria-label="ตัวบวก ' + n + ' บิต">';
+  var cp = !!o.compact, pitch = cp ? 40 : 84, bw = cp ? 26 : 56, r = cp ? 7 : 9, bh = cp ? 34 : 52, left = cp ? 46 : 64;
+  var cy = cp ? 22 : 26, ty = cp ? 46 : 52, by = ty + bh, cy2 = by + 26, W = left + n * pitch + (cp ? 50 : 72), H = cy2 + r + (cp ? 30 : 26), gap = pitch - bw, i;
+  var h = '<svg class="chn' + (cp ? '' : ' big') + '" viewBox="0 0 ' + W + ' ' + H + '" style="' + (cp ? 'width:' + W + 'px' : 'width:100%;min-width:0') + '" role="img" aria-label="ตัวบวก ' + n + ' บิต">';
   for (i = 0; i < n; i++) {
     var col = n - 1 - i, x = left + col * pitch, ok = i < rev, ax = x + bw * 0.28, bx = x + bw * 0.72, sx = x + bw / 2, yc = ty + bh / 2;
     var s = res.s[i], co = res.c[i + 1], dimc = o.dim ? ' dim' : '';
@@ -401,8 +412,9 @@ function chainSVG(o) { // o: a[], b[] (LSB ก่อน), cin, reveal, compact, 
     h += Wp('M' + x + ' ' + yc + 'H' + (x - gap), ok ? co : 0, ok ? '' : 'dash');
     h += '<rect data-i="' + i + '" class="fab' + (ok && (s || co) ? ' on' : '') + (ok ? '' : ' pend') + (o.sel === i ? ' selb' : '') + '" x="' + x + '" y="' + ty + '" width="' + bw + '" height="' + bh + '" rx="6"/>';
     h += '<text class="' + (cp ? 'tx' : 'md') + '" x="' + sx + '" y="' + (yc + 4) + '" text-anchor="middle" style="pointer-events:none">FA</text>';
-    h += Bub(ax, cy, o.a[i], r) + Bub(bx, cy, o.b[i], r) + Bub(sx, cy2, ok ? s : null, r);
-    h += '<text class="tx" x="' + sx + '" y="' + (cy2 + r + 12) + '" text-anchor="middle">' + (cp ? i : 'บิต ' + i) + '</text></g>';
+    h += Bub(ax, cy, o.a[i], r, cp ? '' : 'a') + Bub(bx, cy, o.b[i], r, cp ? '' : 'b') + Bub(sx, cy2, ok ? s : null, r);
+    if (!cp) h += Bub(x - gap / 2, yc, ok ? co : null, 6, 'ทด');
+    h += '<text class="tx" x="' + sx + '" y="' + (cy2 + r + 12) + '" text-anchor="middle">' + (cp ? i : 'ผลบวก · บิต ' + i) + '</text></g>';
   }
   var x0 = left + (n - 1) * pitch, yc0 = ty + bh / 2;
   h += Wp('M' + (x0 + bw) + ' ' + yc0 + 'H' + (x0 + bw + gap + 4), o.cin) + Bub(x0 + bw + gap + 4 + r + 2, yc0, o.cin, r, 'Cin', x0 + bw + gap + 4 + r + 2);
@@ -575,21 +587,26 @@ function mkBits(id,arr,cb){
 
 /* ---------- ตัวบวก 4 บิต + ปล่อย carry ---------- */
 (function(){
-  var a=[0,1,0,1],b=[0,0,1,1],ua,ub,reveal=4,timer=null;
+  var a=[0,1,0,1],b=[0,1,1,0],ua,ub,reveal=4,timer=null; // 5 + 6
   function stop(){clearInterval(timer);timer=null;}
   function val(x){return x[0]*8+x[1]*4+x[2]*2+x[3];}
   function draw(){
     ua();ub();
-    var A=a.slice().reverse(),B=b.slice().reverse(),o=chainSVG({a:A,b:B,cin:0,reveal:reveal});
+    var A=a.slice().reverse(),B=b.slice().reverse(),o=chainSVG({a:A,b:B,cin:0,reveal:reveal}),i;
     $('a4-sv').innerHTML=o.svg;
-    var res=o.res,v=res.c[4]*16,i,run=0,mx=0;
-    for(i=0;i<4;i++){v+=res.s[i]<<i;if(res.c[i+1]){run++;if(run>mx)mx=run;}else run=0;}
-    $('a4-i').innerHTML=reveal<4?'ตัวทดกำลังวิ่ง… คำนวณเสร็จแล้ว '+reveal+' หลัก (หลักบนต้อง<b>รอ</b>หลักล่าง)':
-      val(a)+' + '+val(b)+' = <b>'+v+'</b> · ตัวทดต่อเนื่องยาวสุด <b>'+mx+'</b> หลัก · วงกลมส้ม = 1, เส้นส้ม = สายที่มี 1 วิ่งอยู่';
+    $('a4-av').textContent='= '+val(a);$('a4-bv').textContent='= '+val(b);
+    var res=o.res,v=res.c[4]*16,h='';
+    for(i=0;i<4;i++){
+      var t=A[i]+B[i]+res.c[i];v+=res.s[i]<<i;
+      h+='<li class="'+(i<reveal?'':'pend')+'"><b>บิต '+i+':</b> a='+A[i]+' + b='+B[i]+' + ทดเข้า '+res.c[i]+' = '+t+' (ฐาน 2 คือ '+(t>>1)+''+(t&1)+') → ผลบวก <b>'+res.s[i]+'</b>, ทดออก <b>'+res.c[i+1]+'</b></li>';
+    }
+    $('a4-st').innerHTML=h;
+    $('a4-i').innerHTML=reveal<4?'ตัวทดกำลังวิ่งจากขวาไปซ้าย… คิดเสร็จแล้ว '+reveal+' หลัก (หลักซ้ายต้อง<b>รอ</b>ตัวทดจากหลักขวา)':
+      'อ่านผลจากวงกลมล่าง ซ้าย→ขวา (บิต 3 → 0): <b>'+res.c[4]+res.s[3]+res.s[2]+res.s[1]+res.s[0]+'</b> = <b>'+v+'</b> ตรงกับ '+val(a)+' + '+val(b);
   }
   function chg(){stop();reveal=4;draw();}
   ua=mkBits('a4-a',a,chg);ub=mkBits('a4-b',b,chg);
-  $('a4-go').onclick=function(){stop();reveal=0;draw();timer=setInterval(function(){reveal++;draw();if(reveal>=4)stop();},650);};
+  $('a4-go').onclick=function(){stop();reveal=0;draw();timer=setInterval(function(){reveal++;draw();if(reveal>=4)stop();},900);};
   $('a4-all').onclick=chg;
   draw();
 })();
@@ -598,6 +615,10 @@ function mkBits(id,arr,cb){
 (function(){
   var sv=$('rp-sv'),timer=null,st={x:4294967295,y:1,reveal:32,sel:0},zoomed=false;
   var P={a:[4294967295,1],b:[5,3],c:[0x00FF00FF,0x00010001]};
+  var CAP={
+    a:'<b>0xFFFFFFFF + 1</b>: ทุกหลักเป็น 1 แล้วบวก 1 เข้าที่บิต 0 → ตัวทดต้องวิ่งผ่าน<b>ครบ 32 หลัก</b> นี่คือกรณีที่ตัวบวกแบบนี้<b>ช้าที่สุด</b> (ผลวนกลับเป็น 0 เพราะเกิน 32 บิต)',
+    b:'<b>5 + 3</b>: ตัวทดวิ่งแค่ไม่กี่หลักแล้วหมด หลักที่เหลือไม่ต้องรอ → <b>เสร็จเร็ว</b>',
+    c:'<b>0x00FF00FF + 0x00010001</b>: มีเลข 1 เรียงกัน 8 หลัก 2 ช่วง (บิต 0–7 และ 16–23) ตัวทดจึงวิ่งยาว 8 หลัก 2 ครั้ง ผลได้ 0x01000100'};
   function arr(v){var r=[];for(var i=0;i<32;i++)r.push(Math.floor(v/Math.pow(2,i))%2);return r;}
   function draw(){
     var A=arr(st.x),B=arr(st.y),o=chainSVG({a:A,b:B,cin:0,compact:true,reveal:st.reveal,sel:st.sel});
@@ -605,15 +626,16 @@ function mkBits(id,arr,cb){
     if(!zoomed){$('rp-zoom').innerHTML=faGateSVG();zoomed=true;}
     var i=st.sel,cin=o.res.c[i];
     var f=faGateSet($('rp-zoom').querySelector('svg'),A[i],B[i],cin);
-    $('rp-zl').innerHTML='🔍 ซูมเข้า FA <b>บิต '+i+'</b>: a='+A[i]+' b='+B[i]+' Cin='+cin+' → Sum='+f.SUM+' Cout='+f.CO+(i<st.reveal?'':' (ตัวทดยังมาไม่ถึง)');
+    $('rp-zl').innerHTML='🔍 <b>ซูมเข้า FA บิต '+i+'</b> (กดกล่อง FA ด้านบนเพื่อเปลี่ยนบิต): a='+A[i]+', b='+B[i]+', ทดเข้า='+cin+' → ผลบวก (Sum)='+f.SUM+', ทดออก (Cout)='+f.CO+(i<st.reveal?'':' · ตัวทดยังมาไม่ถึงหลักนี้');
     if(st.reveal>=32){
-      var run=0,mx=0,j;for(j=0;j<32;j++){if(o.res.c[j+1]){run++;if(run>mx)mx=run;}else run=0;}
+      var run=0,mx=0,ms=0,s0=0,j;
+      for(j=0;j<32;j++){if(o.res.c[j+1]){if(run===0)s0=j;run++;if(run>mx){mx=run;ms=s0;}}else run=0;}
       var sum=(st.x+st.y)%4294967296,hx=sum.toString(16);while(hx.length<8)hx='0'+hx;
-      $('rp-i').innerHTML='ผลรวม = <b>0x'+hx+'</b> · ตัวทดต่อเนื่องยาวสุด <b>'+mx+'</b> หลัก'+(o.res.c[32]?' · มีตัวทดออกนอก 32 บิต':'')+(mx>=16?' → ต้องรอตัวทดวิ่งครบ จึงช้า':' → ทดสั้น เสร็จเร็ว');
+      $('rp-i').innerHTML='ผลรวม = <b>0x'+hx+'</b> · ตัวทดต่อเนื่องยาวสุด <b>'+mx+'</b> หลัก'+(mx?' (บิต '+ms+'–'+(ms+mx-1)+')':'')+(o.res.c[32]?' · มีตัวทดออกนอก 32 บิต (ล้น)':'')+(mx>=16?' → ต้องรอตัวทดวิ่งครบจึงช้า':' → ทดสั้น เสร็จเร็ว');
     }else $('rp-i').textContent='ตัวทดกำลังวิ่ง… ถึงบิต '+st.reveal;
   }
-  function run(p){
-    clearInterval(timer);st.x=p[0];st.y=p[1];st.reveal=0;draw();sv.scrollLeft=sv.scrollWidth;
+  function run(k){
+    clearInterval(timer);var p=P[k];st.x=p[0];st.y=p[1];st.reveal=0;st.sel=0;$('rp-cap').innerHTML=CAP[k];draw();sv.scrollLeft=sv.scrollWidth;
     timer=setInterval(function(){
       st.reveal++;draw();
       var x=46+(32-st.reveal)*40;sv.scrollLeft=Math.max(0,x-sv.clientWidth/2);
@@ -621,8 +643,8 @@ function mkBits(id,arr,cb){
     },70);
   }
   sv.onclick=function(e){var t=e.target.closest?e.target.closest('[data-i]'):null;if(t){st.sel=+t.getAttribute('data-i');draw();}};
-  document.querySelectorAll('#w-rip button[data-p]').forEach(function(bt){bt.onclick=function(){run(P[bt.getAttribute('data-p')]);};});
-  draw();sv.scrollLeft=sv.scrollWidth;
+  document.querySelectorAll('#w-rip button[data-p]').forEach(function(bt){bt.onclick=function(){run(bt.getAttribute('data-p'));};});
+  $('rp-cap').innerHTML=CAP.a;draw();sv.scrollLeft=sv.scrollWidth;
 })();
 
 /* ---------- 3 แผนภาพ ---------- */
